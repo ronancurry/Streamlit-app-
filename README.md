@@ -1,8 +1,7 @@
 # Blackjack Trainer
 
-## Student Name
+## Ronan Curry
 
-Ronan Curry
 
 ## App Description
 
