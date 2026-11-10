@@ -1,28 +1,31 @@
-# Blackjack Trainer
+# Blackjack
 
 ## Student Name
 Ronan Curry
 
+
 ## App Description
 
-Blackjack Trainer is an interactive learning tool for practicing blackjack decisions. Enter a hard hand total and the dealer's upcard, choose Hit, Stand, or Double, and get a simplified basic-strategy recommendation with feedback on your choice. It is for educational practice, not real-money gambling.
+Blackjack is a simple interactive card game where you play a hand against a computer dealer. Cards are dealt automatically, and you choose whether to Hit or Stand. The app handles card totals, Ace values, dealer turns, and round results. It uses no real money or betting.
 
 ## Intended Users
 
-This app is intended for people who are new to blackjack or want a simple way to practice and understand common decisions. It is for educational practice, not real-money gambling.
+This app is for anyone who wants to play a casual game of blackjack in a browser, including beginners learning the basic flow of a hand.
 
 ## Current Features
 
-- Enter a hard hand total from 4 to 21 and select the dealer's upcard.
-- Choose Hit, Stand, or Double for the practice scenario.
-- See a hard-total strategy recommendation and immediate feedback on your choice.
-- Recommendations assume the dealer stands on soft 17; soft hands, pairs, and surrender are not covered yet.
+- Deal a shuffled deck and start a hand automatically.
+- Choose Hit or Stand during your turn.
+- View your total and the dealer's upcard while the hole card stays hidden.
+- Score Aces as 1 or 11, resolve busts and natural blackjack, and play the dealer's turn.
+- See whether the hand is a win, loss, or push, then start a new hand.
+- Play with no real-money betting.
 
 ## Planned Features
 
-- Deal and play complete practice hands against a simulated dealer.
-- Add strategy guidance for soft hands, pairs, splits, and surrender.
-- Track wins, losses, pushes, and practice history across a session.
+- Add Double Down and Split actions.
+- Track wins, losses, and pushes across multiple hands.
+- Add optional rules such as surrender and dealer soft-17 settings.
 
 ## Run Locally
 

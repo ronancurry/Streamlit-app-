@@ -1,73 +1,108 @@
+import random
+
 import streamlit as st
 
-def recommend_action(player_total: int, dealer_upcard: int) -> tuple[str, str]:
-	if player_total >= 17:
-		return "Stand", "Hard totals of 17 or more should stand."
-	if player_total <= 8:
-		return "Hit", "A hard total of 8 or less should hit."
-	if player_total == 9:
-		if 3 <= dealer_upcard <= 6:
-			return "Double", "Double 9 against a dealer 3 through 6; otherwise hit."
-		return "Hit", "Double 9 only against a dealer 3 through 6; otherwise hit."
-	if player_total == 10:
-		if dealer_upcard <= 9:
-			return "Double", "Double 10 against a dealer 2 through 9; otherwise hit."
-		return "Hit", "Hit 10 against a dealer 10 or Ace."
-	if player_total == 11:
-		if dealer_upcard == 11:
-			return "Hit", "With the dealer standing on soft 17, hit hard 11 against an Ace."
-		return "Double", "A hard 11 is a strong hand to double."
-	if player_total == 12:
-		if 4 <= dealer_upcard <= 6:
-			return "Stand", "Stand on 12 against a dealer 4 through 6; otherwise hit."
-		return "Hit", "Stand on 12 only against a dealer 4 through 6; otherwise hit."
-	if dealer_upcard <= 6:
-		return "Stand", "Stand on hard 13 through 16 against a dealer 2 through 6."
-	return "Hit", "Hit hard 13 through 16 against a dealer 7 or higher."
+
+RANKS = ("2", "3", "4", "5", "6", "7", "8", "9", "10", "Jack", "Queen", "King", "Ace")
+SUITS = ("Clubs", "Diamonds", "Hearts", "Spades")
 
 
-st.title("Blackjack Trainer")
-st.write(
-	"Practice a blackjack decision by entering your hard hand total and the "
-	"dealer's upcard. Get a basic-strategy suggestion and compare it with your choice."
-)
-st.caption(
-	"Recommendations assume the dealer stands on soft 17 and cover hard totals only. "
-	"Soft hands, pairs, and surrender are not included yet."
-)
+def hand_value(hand: list[tuple[str, str]]) -> int:
+	total = 0
+	aces = 0
+	for rank, _ in hand:
+		if rank == "Ace":
+			total += 11
+			aces += 1
+		elif rank in {"Jack", "Queen", "King"}:
+			total += 10
+		else:
+			total += int(rank)
 
-st.subheader("Practice a hand")
-left_column, right_column = st.columns(2)
+	while total > 21 and aces:
+		total -= 10
+		aces -= 1
+	return total
 
-with left_column:
-	player_total = st.number_input(
-		"Your hard hand total",
-		min_value=4,
-		max_value=21,
-		value=16,
-		step=1,
-		help="Enter your total without treating an Ace as 11.",
-	)
 
-with right_column:
-	dealer_card = st.selectbox(
-		"Dealer's upcard",
-		[str(value) for value in range(2, 11)] + ["Ace"],
-		index=8,
-	)
+def draw_card() -> tuple[str, str]:
+	return st.session_state.deck.pop()
 
-decision = st.radio(
-	"What would you do?",
-	["Hit", "Stand", "Double"],
-	horizontal=True,
-)
-dealer_value = 11 if dealer_card == "Ace" else int(dealer_card)
-recommended_action, explanation = recommend_action(player_total, dealer_value)
 
-st.markdown("### Recommendation")
-st.info(f"**{recommended_action}.** {explanation}")
+def finish_round() -> None:
+	while hand_value(st.session_state.dealer_hand) < 17:
+		st.session_state.dealer_hand.append(draw_card())
 
-if decision == recommended_action:
-	st.success("Your choice matches the basic-strategy recommendation for this hand.")
+	player_total = hand_value(st.session_state.player_hand)
+	dealer_total = hand_value(st.session_state.dealer_hand)
+	if dealer_total > 21 or player_total > dealer_total:
+		st.session_state.result = "You win!"
+	elif player_total < dealer_total:
+		st.session_state.result = "Dealer wins."
+	else:
+		st.session_state.result = "Push. It's a tie."
+	st.session_state.round_over = True
+
+
+def start_round() -> None:
+	deck = [(rank, suit) for rank in RANKS for suit in SUITS]
+	random.shuffle(deck)
+	st.session_state.deck = deck
+	st.session_state.player_hand = [draw_card(), draw_card()]
+	st.session_state.dealer_hand = [draw_card(), draw_card()]
+	st.session_state.round_over = False
+	st.session_state.result = ""
+
+	player_natural = hand_value(st.session_state.player_hand) == 21
+	dealer_natural = hand_value(st.session_state.dealer_hand) == 21
+	if player_natural or dealer_natural:
+		st.session_state.round_over = True
+		if player_natural and dealer_natural:
+			st.session_state.result = "Push. Both hands have blackjack."
+		elif player_natural:
+			st.session_state.result = "Blackjack! You win."
+		else:
+			st.session_state.result = "Dealer has blackjack."
+
+
+if "deck" not in st.session_state:
+	start_round()
+
+st.title("Blackjack")
+st.write("Play a hand against the dealer. Choose Hit to take another card or Stand to let the dealer play.")
+st.caption("Play-money game. Dealer stands on 17. Aces count as 1 or 11, whichever helps your hand most.")
+
+st.subheader("Your hand")
+st.write("  |  ".join(f"{rank} of {suit}" for rank, suit in st.session_state.player_hand))
+st.metric("Your total", hand_value(st.session_state.player_hand))
+
+st.subheader("Dealer")
+if st.session_state.round_over:
+	st.write("  |  ".join(f"{rank} of {suit}" for rank, suit in st.session_state.dealer_hand))
+	st.metric("Dealer total", hand_value(st.session_state.dealer_hand))
 else:
-	st.warning(f"You chose {decision.lower()}. For this hand, basic strategy recommends {recommended_action.lower()}.")
+	dealer_upcard = st.session_state.dealer_hand[0]
+	st.write(f"{dealer_upcard[0]} of {dealer_upcard[1]}  |  Hidden card")
+
+if st.session_state.round_over:
+	st.success(st.session_state.result)
+elif hand_value(st.session_state.player_hand) > 21:
+	st.session_state.round_over = True
+	st.session_state.result = "Bust. Dealer wins."
+	st.error(st.session_state.result)
+else:
+	hit_column, stand_column = st.columns(2)
+	with hit_column:
+		if st.button("Hit", type="primary", use_container_width=True):
+			st.session_state.player_hand.append(draw_card())
+			if hand_value(st.session_state.player_hand) > 21:
+				st.session_state.round_over = True
+				st.session_state.result = "Bust. Dealer wins."
+			st.rerun()
+	with stand_column:
+		if st.button("Stand", use_container_width=True):
+			finish_round()
+			st.rerun()
+
+if st.session_state.round_over:
+	st.button("New Hand", on_click=start_round, type="primary")
